@@ -1,1 +1,6 @@
 .ipynb_checkpoints/ 
+.env
+.vscode/.env
+data/
+app/__pycache__/
+*.db
