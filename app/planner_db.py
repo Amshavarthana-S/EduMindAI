@@ -158,3 +158,79 @@ def get_student_name():
     except:
         conn.close()
         return None
+def add_recurring_task(title, subject, days):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS recurring_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            subject TEXT,
+            days TEXT
+        )
+    ''')
+    c.execute('INSERT INTO recurring_tasks (title, subject, days) VALUES (?, ?, ?)',
+              (title, subject, ','.join(days)))
+    conn.commit()
+    conn.close()
+
+def get_recurring_tasks():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT id, title, subject, days FROM recurring_tasks')
+        result = c.fetchall()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return []
+
+def delete_recurring_task(task_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM recurring_tasks WHERE id = ?', (task_id,))
+    conn.commit()
+    conn.close()
+
+def save_day_checkin(rating, mood, study_hours, date):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS day_checkin (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rating INTEGER,
+            mood TEXT,
+            study_hours REAL,
+            checkin_date TEXT
+        )
+    ''')
+    c.execute('DELETE FROM day_checkin WHERE checkin_date = ?', (date,))
+    c.execute('INSERT INTO day_checkin (rating, mood, study_hours, checkin_date) VALUES (?, ?, ?, ?)',
+              (rating, mood, study_hours, date))
+    conn.commit()
+    conn.close()
+
+def get_day_checkin(date):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT rating, mood, study_hours FROM day_checkin WHERE checkin_date = ?', (date,))
+        result = c.fetchone()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return None
+def get_checkin_last_7_days():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT rating, mood, study_hours, checkin_date FROM day_checkin ORDER BY checkin_date DESC LIMIT 7')
+        result = c.fetchall()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return []
+    
