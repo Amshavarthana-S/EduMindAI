@@ -233,4 +233,94 @@ def get_checkin_last_7_days():
     except:
         conn.close()
         return []
-    
+def get_xp():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('''CREATE TABLE IF NOT EXISTS xp (
+            id INTEGER PRIMARY KEY,
+            total_xp INTEGER DEFAULT 0,
+            last_updated TEXT
+        )''')
+        c.execute('SELECT total_xp FROM xp WHERE id = 1')
+        result = c.fetchone()
+        conn.close()
+        return result[0] if result else 0
+    except:
+        conn.close()
+        return 0
+
+def add_xp(amount):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS xp (
+        id INTEGER PRIMARY KEY,
+        total_xp INTEGER DEFAULT 0,
+        last_updated TEXT
+    )''')
+    c.execute('SELECT total_xp FROM xp WHERE id = 1')
+    result = c.fetchone()
+    if result:
+        new_xp = result[0] + amount
+        c.execute('UPDATE xp SET total_xp = ?, last_updated = ? WHERE id = 1',
+                  (new_xp, datetime.now().strftime("%Y-%m-%d")))
+    else:
+        c.execute('INSERT INTO xp (id, total_xp, last_updated) VALUES (1, ?, ?)',
+                  (amount, datetime.now().strftime("%Y-%m-%d")))
+    conn.commit()
+    conn.close()
+
+def get_streak():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('SELECT checkin_date FROM day_checkin ORDER BY checkin_date DESC')
+        dates = [row[0] for row in c.fetchall()]
+        conn.close()
+        if not dates:
+            return 0
+        streak = 0
+        current = datetime.now().date()
+        for d in dates:
+            checkin = datetime.strptime(d, "%Y-%m-%d").date()
+            if (current - checkin).days == streak:
+                streak += 1
+            else:
+                break
+        return streak
+    except:
+        conn.close()
+        return 0
+
+def get_badges():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('''CREATE TABLE IF NOT EXISTS badges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            earned_at TEXT
+        )''')
+        c.execute('SELECT name, earned_at FROM badges')
+        result = c.fetchall()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return []
+
+def award_badge(name):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS badges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        earned_at TEXT
+    )''')
+    try:
+        c.execute('INSERT INTO badges (name, earned_at) VALUES (?, ?)',
+                  (name, datetime.now().strftime("%Y-%m-%d")))
+        conn.commit()
+    except:
+        pass
+    conn.close()
