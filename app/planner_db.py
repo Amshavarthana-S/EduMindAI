@@ -324,3 +324,60 @@ def award_badge(name):
     except:
         pass
     conn.close()
+def save_wellness(sleep_hours, ate_healthy, water_glasses, phone_hours, exercised, stress_level, focus_rating, mental_note, date):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS wellness (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sleep_hours REAL,
+        ate_healthy TEXT,
+        water_glasses INTEGER,
+        phone_hours REAL,
+        exercised TEXT,
+        stress_level INTEGER,
+        focus_rating INTEGER,
+        mental_note TEXT,
+        wellness_date TEXT UNIQUE
+    )''')
+    c.execute('DELETE FROM wellness WHERE wellness_date = ?', (date,))
+    c.execute('''INSERT INTO wellness (sleep_hours, ate_healthy, water_glasses, phone_hours, 
+                 exercised, stress_level, focus_rating, mental_note, wellness_date)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+              (sleep_hours, ate_healthy, water_glasses, phone_hours, 
+               exercised, stress_level, focus_rating, mental_note, date))
+    conn.commit()
+    conn.close()
+
+def get_today_wellness(date):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('''CREATE TABLE IF NOT EXISTS wellness (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sleep_hours REAL, ate_healthy TEXT, water_glasses INTEGER,
+            phone_hours REAL, exercised TEXT, stress_level INTEGER,
+            focus_rating INTEGER, mental_note TEXT, wellness_date TEXT UNIQUE
+        )''')
+        c.execute('''SELECT sleep_hours, ate_healthy, water_glasses, phone_hours, 
+                     exercised, stress_level, focus_rating, mental_note 
+                     FROM wellness WHERE wellness_date = ?''', (date,))
+        result = c.fetchone()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return None
+
+def get_wellness_last_7_days():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('''SELECT sleep_hours, ate_healthy, water_glasses, phone_hours,
+                     exercised, stress_level, focus_rating, wellness_date 
+                     FROM wellness ORDER BY wellness_date DESC LIMIT 7''')
+        result = c.fetchall()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return []
