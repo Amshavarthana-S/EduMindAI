@@ -5,7 +5,10 @@ import pickle
 import pandas as pd
 import uuid
 
-os.environ["GROQ_API_KEY"] = "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"
+try:
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+except:
+    os.environ["GROQ_API_KEY"] = "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"
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
@@ -15,10 +18,35 @@ from planner_db import (init_planner_db, add_exam, get_all_exams, delete_exam,
                         delete_task, save_mood, get_today_mood, get_mood_last_7_days,
                         save_student_name, get_student_name, add_recurring_task,
                         get_recurring_tasks, delete_recurring_task,
-                        save_day_checkin, get_day_checkin, get_checkin_last_7_days,get_xp, add_xp, get_streak, get_badges, award_badge,save_wellness, get_today_wellness, get_wellness_last_7_days)
+                        save_day_checkin, get_day_checkin, get_checkin_last_7_days,get_xp, add_xp, get_streak, get_badges, award_badge,save_wellness, get_today_wellness, get_wellness_last_7_days, save_profile, get_profile)
 
 init_db()
 init_planner_db()
+
+# ── USERNAME SESSION ──────────────────────────────────────
+if "username" not in st.session_state:
+    st.session_state.username = None
+
+if st.session_state.username is None:
+    st.set_page_config(page_title="EduMind AI", page_icon="🎓", layout="wide", initial_sidebar_state="expanded")
+    st.markdown("""
+        <div style='text-align:center; padding:60px 20px;'>
+            <h1 style='color:#8B5CF6;'>EduMind AI</h1>
+            <p style='color:#888; font-size:1.1rem;'>Your study buddy is always here</p>
+        </div>
+    """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("### Enter your username to continue")
+        st.caption("Use the same username every time to keep your data.")
+        username_input = st.text_input("Username", placeholder="e.g. Tom29")
+        if st.button("Continue", use_container_width=True):
+            if username_input.strip():
+                st.session_state.username = username_input.strip()
+                st.rerun()
+    st.stop()
+
+username = st.session_state.username
 
 st.set_page_config(
     page_title="EduMind AI",
@@ -76,6 +104,15 @@ st.markdown("""
         box-shadow: 0 0 0 1px #8B5CF6 !important;
     }
     
+    section[data-testid="stSidebar"] button[kind="primary"] {
+    background-color: #8B5CF6 !important;
+    border-color: #8B5CF6 !important;
+    color: white !important;
+}
+section[data-testid="stSidebar"] button[kind="primary"]:hover {
+    background-color: #7c3aed !important;
+    border-color: #7c3aed !important;
+}
     </style>
 """, unsafe_allow_html=True)
 
@@ -88,66 +125,82 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 st.sidebar.markdown("---")
-page = st.sidebar.selectbox("📌 Navigate", [
-    "🏠 Home",
-    "💊 Wellness",
-    "💬 AI Chatbot",
-    "📅 Day Tracker",
-    "🎁 Rewards",
-    "📈 Dashboard"
-])
+
+if "page" not in st.session_state:
+    st.session_state.page = "🏠 Home"
+
+pages = [
+    ("🏠", "Home"),
+    ("💊", "Wellness"),
+    ("💬", "AI Chatbot"),
+    ("📅", "Day Tracker"),
+    ("🎁", "Rewards"),
+    ("📈", "Dashboard"),
+    ("👤", "Profile"),
+]
+
+for icon, name in pages:
+    full = f"{icon} {name}"
+    is_active = st.session_state.page == full
+    if st.sidebar.button(
+        full,
+        use_container_width=True,
+        key=f"nav_{name}",
+        type="primary" if is_active else "secondary"
+    ):
+        st.session_state.page = full
+        st.rerun()
+
+page = st.session_state.page
+
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Logout", use_container_width=True):
+    st.session_state.username = None
+    st.session_state.page = "🏠 Home"
+    st.rerun()
 
 if page == "🏠 Home":
     from datetime import datetime, date, timedelta
-    st.sidebar.markdown("---")
-    student_name = get_student_name()
-    if student_name:
-        with st.sidebar.expander("⚙️ Settings"):
-            new_name = st.text_input("Change your name", value=student_name, key="change_name_input")
-            if st.button("Update name", key="update_name_btn"):
-                if new_name.strip():
-                    save_student_name(new_name.strip())
-                    st.rerun() 
-    else:
-        hour = datetime.now().hour
-        if hour < 12:
-            greeting = "Good morning"
-        elif hour < 17:
-            greeting = "Good afternoon"
-        else:
-            greeting = "Good evening"
 
-        st.markdown(f"""
-            <div style='padding: 30px 0 10px 0;'>
-                <h1 style='font-size:2.5rem; font-weight:800; color: var(--color-text-primary); margin:0;'>
-                    {greeting}, {student_name} 👋
-                </h1>
-                <p style='color:#888; margin-top:6px;'>Your study buddy is always here</p>
-            </div>
-        """, unsafe_allow_html=True)
+    hour = datetime.now().hour
+    if hour < 12:
+        greeting = "Good morning"
+    elif hour < 17:
+        greeting = "Good afternoon"
+    else:
+        greeting = "Good evening"
+
+    st.markdown(f"""
+        <div style='padding: 30px 0 10px 0;'>
+            <h1 style='font-size:2.5rem; font-weight:800; color: var(--color-text-primary); margin:0;'>
+                {greeting}, {username} 👋
+            </h1>
+            <p style='color:#888; margin-top:6px;'>Your study buddy is always here</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
-    today_mood = get_today_mood()
+    today_mood = get_today_mood(username)
 
     if today_mood is None:
         st.markdown("### How are you feeling today?")
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("😊  Good", use_container_width=True):
-                save_mood("good")
+                save_mood(username, "good")
                 st.rerun()
         with col2:
             if st.button("😐  Okay", use_container_width=True):
-                save_mood("okay")
+                save_mood(username, "okay")
                 st.rerun()
         with col3:
             if st.button("😔  Not great", use_container_width=True):
-                save_mood("not great")
+                save_mood(username, "not great")
                 st.rerun()
     else:
         mood_map = {
             "good": ("😊", "Glad you're feeling good!", "#8B5CF6"),
-            "okay": ("😐", "That's alright — let's make today count.", "#8B5CF6"),
+            "okay": ("😐", "That's alright -- let's make today count.", "#8B5CF6"),
             "not great": ("😔", "Tough day? The AI Chatbot is here for you.", "#dc3545")
         }
         icon, message, color = mood_map.get(today_mood, ("😐", "", "#888"))
@@ -158,7 +211,7 @@ if page == "🏠 Home":
             </div>
         """, unsafe_allow_html=True)
         if st.button("Change mood", key="change_mood"):
-            save_mood(None)
+            save_mood(username, None)
             st.rerun()
 
     st.markdown("---")
@@ -168,7 +221,7 @@ if page == "🏠 Home":
     with col_left:
        
         st.markdown("### Today's Tasks")
-        today_tasks = get_today_tasks()
+        today_tasks = get_today_tasks(username)
         pending = [t for t in today_tasks if t[5] == "pending"]
         done = [t for t in today_tasks if t[5] == "done"]
 
@@ -207,13 +260,13 @@ if page == "🏠 Home":
             t_priority = st.selectbox("Priority", ["High", "Medium", "Low"])
             if st.button("Add Task", use_container_width=True):
                 if t_title.strip():
-                    add_task(t_title.strip(), t_subject.strip(), str(date.today()), t_priority)
+                    add_task(username, t_title.strip(), t_subject.strip(), str(date.today()), t_priority)
                     st.rerun()
 
     with col_right:
       
         st.markdown("### Upcoming Exams")
-        exams = get_all_exams()
+        exams = get_all_exams(username)
         upcoming = []
         for exam in exams:
             exam_id, subject, exam_date_str, hours_per_day = exam
@@ -263,24 +316,14 @@ if page == "🏠 Home":
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        total_tasks = len(get_tasks())
-        done_tasks = len(get_tasks(status="done"))
+        total_tasks = len(get_tasks(username))
+        done_tasks = len(get_tasks(username, status="done"))
         st.metric("Tasks Completed", f"{done_tasks}/{total_tasks}")
     with col2:
-        total_exams = len([e for e in get_all_exams() if (datetime.strptime(e[2], "%Y-%m-%d").date() - date.today()).days >= 0])
+        total_exams = len([e for e in get_all_exams(username) if (datetime.strptime(e[2], "%Y-%m-%d").date() - date.today()).days >= 0])
         st.metric("Upcoming Exams", total_exams)
     with col3:
         st.metric("Mood Today", today_mood.capitalize() if today_mood else "Not checked in")
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("📅 End of Day Check-in", use_container_width=True):
-            st.session_state.goto_eod = True
-            st.rerun()
-    with col2:
-        if st.button("💊 Log Wellness", use_container_width=True):
-            st.switch_page = "💊 Wellness"
-            st.rerun()
 elif page == "💊 Wellness":
     from datetime import date
 
@@ -293,7 +336,7 @@ elif page == "💊 Wellness":
     st.markdown("---")
 
     today_str = str(date.today())
-    today_wellness = get_today_wellness(today_str)
+    today_wellness = get_today_wellness(username, today_str)
 
     if "show_wellness_form" not in st.session_state:
         st.session_state.show_wellness_form = False
@@ -361,37 +404,37 @@ elif page == "💊 Wellness":
         st.markdown("#### Feedback")
 
         if sleep < 6:
-            st.error("😴 Less than 6 hours sleep — your memory and focus will suffer today. Sleep earlier tonight.")
+            st.error("😴 Less than 6 hours sleep -- your memory and focus will suffer today. Sleep earlier tonight.")
         elif sleep <= 8:
             st.success("😴 Perfect sleep! 6-8 hours is ideal for students.")
         else:
-            st.warning("😴 Too much sleep — over 8 hours can make you feel groggy and slow.")
+            st.warning("😴 Too much sleep -- over 8 hours can make you feel groggy and slow.")
 
         if water < 4:
-            st.error("💧 Less than 4 glasses — dehydration reduces brain performance by up to 10%!")
+            st.error("💧 Less than 4 glasses -- dehydration reduces brain performance by up to 10%!")
         elif water < 8:
             st.warning("💧 Decent water intake. Try to reach 8 glasses daily.")
         else:
             st.success("💧 Great hydration! Your brain is well fueled.")
 
         if phone > 6:
-            st.error("📱 6+ hours on phone — seriously cutting into your study time. Set a daily limit!")
+            st.error("📱 6+ hours on phone -- seriously cutting into your study time. Set a daily limit!")
         elif phone > 3:
-            st.warning("📱 3+ hours on phone — try to keep under 2 hours on study days.")
+            st.warning("📱 3+ hours on phone -- try to keep under 2 hours on study days.")
         else:
             st.success("📱 Good phone discipline! Keep it up.")
 
         if ate == "Yes":
-            st.success("🥗 Healthy eating today — good nutrition improves brain function!")
+            st.success("🥗 Healthy eating today -- good nutrition improves brain function!")
         elif ate == "Partially":
-            st.warning("🥗 Partially healthy — try to add more vegetables and reduce junk food.")
+            st.warning("🥗 Partially healthy -- try to add more vegetables and reduce junk food.")
         else:
-            st.error("🥗 Unhealthy eating today — poor nutrition affects energy and focus.")
+            st.error("🥗 Unhealthy eating today -- poor nutrition affects energy and focus.")
 
         if exercise == "Yes":
-            st.success("🏃 Exercised today — even 20 minutes of exercise improves focus by 20%!")
+            st.success("🏃 Exercised today -- even 20 minutes of exercise improves focus by 20%!")
         else:
-            st.warning("🏃 No exercise today — try a 15 minute walk tomorrow.")
+            st.warning("🏃 No exercise today -- try a 15 minute walk tomorrow.")
 
         if stress >= 4:
             st.error("😰 High stress detected! Talk to the AI Chatbot for support.")
@@ -399,9 +442,9 @@ elif page == "💊 Wellness":
                 st.session_state.page = "💬 AI Chatbot"
                 st.rerun()
         elif stress >= 3:
-            st.warning("😰 Moderate stress — take short breaks and breathe.")
+            st.warning("😰 Moderate stress -- take short breaks and breathe.")
         else:
-            st.success("😰 Low stress — great mental state for studying!")
+            st.success("😰 Low stress -- great mental state for studying!")
 
         if note:
             st.markdown(f"""
@@ -421,7 +464,7 @@ elif page == "💊 Wellness":
 
     else:
         st.markdown("### Log Today's Wellness")
-        st.caption("Takes 1 minute — helps you and the app understand your health.")
+        st.caption("Takes 1 minute -- helps you and the app understand your health.")
 
         col1, col2 = st.columns(2)
         with col1:
@@ -437,7 +480,7 @@ elif page == "💊 Wellness":
         mental_note = st.text_input("🧠 One line about your day (optional)", placeholder="e.g. Felt tired but managed to study")
 
         if st.button("Save Wellness", use_container_width=True):
-            save_wellness(sleep_hours, ate_healthy, water_glasses, phone_hours,
+            save_wellness(username, sleep_hours, ate_healthy, water_glasses, phone_hours,
                          exercised, stress_level, focus_rating, mental_note, today_str)
             st.session_state.show_wellness_form = False
             st.success("Wellness logged!")
@@ -445,7 +488,7 @@ elif page == "💊 Wellness":
 
     st.markdown("---")
     st.markdown("### Last 7 Days")
-    wellness_history = get_wellness_last_7_days()
+    wellness_history = get_wellness_last_7_days(username)
     if wellness_history:
         for w in wellness_history[::-1]:
             sleep, ate, water, phone, exercise, stress, focus, w_date = w
@@ -485,7 +528,7 @@ elif page == "💬 AI Chatbot":
     st.markdown("""
         <div style='text-align: center; padding: 20px;'>
             <h1>🤖 EduMind AI</h1>
-            <p style='color: #888;'>Your personal student companion — always here 💙</p>
+            <p style='color: #888;'>Your personal student companion -- always here 💙</p>
         </div>
     """, unsafe_allow_html=True)
     st.markdown("---")
@@ -509,7 +552,7 @@ elif page == "💬 AI Chatbot":
                 margin-bottom: 20px;
                 border-left: 4px solid #8B5CF6;'>
         <h4 style='color: #ffffff !important; margin:0;'>🤖 hey! i'm EduMind 👋</h4>
-        <p style='color: #cccccc !important; margin:8px 0;'>not a robot, not a teacher — just your study buddy who actually gets it 😊</p>
+        <p style='color: #cccccc !important; margin:8px 0;'>not a robot, not a teacher -- just your study buddy who actually gets it 😊</p>
         <p style='color: #cccccc !important; margin:0;'>tell me what's going on. no judgment, promise!</p>
     </div>
 """, unsafe_allow_html=True)
@@ -568,75 +611,106 @@ elif page == "💬 AI Chatbot":
             try:
                 from groq import Groq
                 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-                from datetime import date as dt
-                today_w = get_today_wellness(str(dt.today()))
-                system_prompt = """ You are EduMind AI — a friendly, calm study buddy for Sri Lankan A/L and university students.
- wellness_context = ""
+                from datetime import date as dt, datetime as dtime
+                today_w = get_today_wellness(username, str(dt.today()))
+                student_checkins = get_checkin_last_7_days(username)
+                student_tasks_done = get_tasks(username, status="done")
+                student_tasks_all = get_tasks(username)
+                student_exams = get_all_exams(username)
+                student_streak = get_streak(username)
+                student_moods = get_mood_last_7_days(username)
+                avg_study = round(sum([c[2] for c in student_checkins]) / len(student_checkins), 1) if student_checkins else 0
+                comp_rate = round(len(student_tasks_done) / len(student_tasks_all) * 100) if student_tasks_all else 0
+                bad_moods_count = sum(1 for m, _ in student_moods if m == "not great")
+                upcoming_count = len([e for e in student_exams if (dtime.strptime(e[2], "%Y-%m-%d").date() - dt.today()).days >= 0])
+                wellness_context = f"""Student Data: streak={student_streak}d, study={avg_study}h/day, tasks={comp_rate}%, exams={upcoming_count}, bad_moods={bad_moods_count}/7"""
                 if today_w:
                     sleep, ate, water, phone, exercise, stress, focus, note = today_w
-                    if stress >= 4:
-                        wellness_context = f"\nNote: This student logged high stress ({stress}/5) today. Be extra supportive."
-                    if sleep < 6:
-                        wellness_context += f"\nThey only slept {sleep} hours last night — they may be tired."
+                    wellness_context += f" | Today: sleep={sleep}h, stress={stress}/5, phone={phone}h"
+                    if stress >= 4: wellness_context += " | IMPORTANT: highly stressed"
+                    if sleep < 6: wellness_context += f" | IMPORTANT: only slept {sleep}h"
+                    if phone > 4 and avg_study < 2:
+                        wellness_context += " | IMPORTANT: High phone usage + low study hours detected. Likely phone is causing distraction. Gently ask if phone is getting in the way of studying."
                     if phone > 4:
-                        wellness_context += f"\nThey used phone for {phone} hours today."
-Your personality:
-→ Friendly but neutral tone — NO slang like machan, bro, da, ya unless student uses it first
-→ Warm and real, never robotic or formal
-→ Always UNDERSTAND the situation first before helping
+                        wellness_context += f" | Phone usage is high ({phone}h today). Student may be distracted."
+                    if avg_study < 1:
+                        wellness_context += " | Student is barely studying this week. Don't lecture — ask what's stopping them."
+                    if bad_moods_count >= 3:
+                        wellness_context += " | Student has been in bad mood most of this week. Be extra gentle and check in emotionally first."
+                    if comp_rate < 30:
+                        wellness_context += " | Task completion is very low. Student may be overwhelmed or struggling."
+                student_profile_data = get_profile(username)
+                if student_profile_data:
+                    wellness_context += f" | Profile: {student_profile_data[2]}, {student_profile_data[3]}, subjects={student_profile_data[4]}"
 
-MOST IMPORTANT RULE — gather info before helping:
+                system_prompt = f"""You are EduMind AI -- a friendly, calm study buddy for Sri Lankan A/L and university students.
+{wellness_context}
+
+Your personality:
+-> Friendly but neutral tone -- NO slang like machan, bro, da, ya unless student uses it first
+-> Warm and real, never robotic or formal
+-> Always UNDERSTAND the situation first before helping
+
+MOST IMPORTANT RULE -- gather info before helping:
 
 If student mentions EXAM or SUBJECT:
-→ First ask: when is your exam?
-→ Then ask: which subject and what topics?
-→ Then ask: what kind of help — study plan, explanations, past papers?
-→ Only give advice AFTER you know these — never jump to tips immediately
+-> First ask: when is your exam?
+-> Then ask: which subject and what topics?
+-> Then ask: what kind of help -- study plan, explanations, past papers?
+-> Only give advice AFTER you know these -- never jump to tips immediately
 
 If student mentions STRESS or BAD DAY:
-→ First ask: what's making you stressed — studies, personal life, or something else?
-→ Then ask: how long have you been feeling this way?
-→ Only then offer support or suggestions based on their answer
+-> First ask: what's making you stressed -- studies, personal life, or something else?
+-> Then ask: how long have you been feeling this way?
+-> Only then offer support or suggestions based on their answer
 
 If student mentions CAN'T FOCUS:
-→ First ask: what subject or task are you trying to focus on?
-→ Then ask: what's distracting you — phone, noise, thoughts?
-→ Then give ONE specific tip based on their answer
+-> First ask: what subject or task are you trying to focus on?
+-> Then ask: what's distracting you -- phone, noise, thoughts?
+-> Then give ONE specific tip based on their answer
 
 If student mentions CAREER or FUTURE:
-→ First ask: what stream or field are you in — A/L science, commerce, arts or university?
-→ Then ask: what are you interested in or good at?
-→ Then give realistic local career suggestions based on that
+-> First ask: what stream or field are you in -- A/L science, commerce, arts or university?
+-> Then ask: what are you interested in or good at?
+-> Then give realistic local career suggestions based on that
 
 If student mentions FRUSTRATED:
-→ First ask: what happened — studies, friends, family, or something else?
-→ Listen and acknowledge before giving any advice
+-> First ask: what happened -- studies, friends, family, or something else?
+-> Listen and acknowledge before giving any advice
 
 If student just wants to TALK:
-→ Be casual and friendly
-→ Ask what's on their mind
-→ Follow their lead, don't push advice
+-> Be casual and friendly
+-> Ask what's on their mind
+-> Follow their lead, don't push advice
 
 How to read short replies:
-→ "ok", "mm", "fine", "oh" = don't give another tip, just check in naturally
-→ "yes/no" = respond directly and continue the flow
-→ If they seem done with the topic → don't force it, move on
+-> "ok", "mm", "fine", "oh" = don't give another tip, just check in naturally
+-> "yes/no" = respond directly and continue the flow
+-> If they seem done with the topic -> don't force it, move on
 
 Conversation flow:
-→ MAX 1 question or tip per reply
-→ Never give tips back to back
-→ Never repeat the same advice twice
-→ Build conversation naturally — understand first, help second
+-> MAX 1 question or tip per reply
+-> Never give tips back to back
+-> Never repeat the same advice twice
+-> Build conversation naturally -- understand first, help second
 
 Language:
-→ Match the language student uses — Sinhala, Tamil, or English
-→ NEVER use slang unless student uses it first
+-> Match the language student uses -- Sinhala, Tamil, or English
+-> NEVER use slang unless student uses it first
 
 Hard rules:
-→ Max 3 sentences per reply
-→ Don't ask a question in every single message
-→ Never sound like a therapist, teacher, or motivational poster
-→ Be genuinely helpful, not just cheerful"""
+If you have student data showing high phone + low study:
+-> Don't lecture or guilt them
+-> Gently ask "I noticed you've been on your phone a lot — is it hard to put it down when studying?"
+-> Follow their lead after that
+
+If student data shows high stress + low sleep:
+-> Acknowledge it first before anything else
+-> "Sounds like you're running on empty — that's really hard."
+-> Max 3 sentences per reply
+-> Don't ask a question in every single message
+-> Never sound like a therapist, teacher, or motivational poster
+-> Be genuinely helpful, not just cheerful"""
 
                 messages = [{"role": "system", "content": system_prompt}]
                 for msg in st.session_state.groq_history:
@@ -666,10 +740,10 @@ Hard rules:
 
                 if not st.session_state.session_saved:
                     title = st.session_state.chat_history[0]["content"][:40]
-                    save_session(st.session_state.session_id, title)
+                    save_session(username, st.session_state.session_id, title)
                     st.session_state.session_saved = True
-                save_message(st.session_state.session_id, "user", last_msg["content"])
-                save_message(st.session_state.session_id, "assistant", ai_response)
+                save_message(username, st.session_state.session_id, "user", last_msg["content"])
+                save_message(username, st.session_state.session_id, "assistant", ai_response)
 
                 st.rerun()
 
@@ -694,7 +768,7 @@ Hard rules:
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 💬 Chat History")
-    sessions = get_all_sessions()
+    sessions = get_all_sessions(username)
     if sessions:
         for session_id, title, created_at in sessions:
             col1, col2 = st.sidebar.columns([3, 1])
@@ -739,13 +813,13 @@ elif page == "📅 Day Tracker":
             if subject.strip() == "":
                 st.error("Please enter a subject name.")
             else:
-                add_exam(subject.strip(), str(exam_date), hours_per_day)
+                add_exam(username, subject.strip(), str(exam_date), hours_per_day)
                 st.success(f"{subject} added!")
                 st.rerun()
 
         st.markdown("---")
         st.markdown("### My Exams")
-        exams = get_all_exams()
+        exams = get_all_exams(username)
 
         if not exams:
             st.info("No exams added yet.")
@@ -799,7 +873,7 @@ elif page == "📅 Day Tracker":
             if t_title.strip() == "":
                 st.error("Please enter a task.")
             else:
-                add_task(t_title.strip(), t_subject.strip(), str(t_due), t_priority)
+                add_task(username, t_title.strip(), t_subject.strip(), str(t_due), t_priority)
                 st.success("Task added!")
                 st.rerun()
 
@@ -808,7 +882,7 @@ elif page == "📅 Day Tracker":
 
         filter_status = st.radio("Show", ["Pending", "Done", "All"], horizontal=True)
         status_filter = {"Pending": "pending", "Done": "done", "All": None}
-        tasks = get_tasks(status=status_filter[filter_status])
+        tasks = get_tasks(username, status=status_filter[filter_status])
 
         if not tasks:
             st.info("No tasks found.")
@@ -841,7 +915,7 @@ elif page == "📅 Day Tracker":
 
     with tab3:
         st.markdown("### Add Recurring Activity")
-        st.caption("Things you do every week — classes, tuition, gym etc. These auto-show in your daily plan.")
+        st.caption("Things you do every week -- classes, tuition, gym etc. These auto-show in your daily plan.")
 
         col1, col2 = st.columns(2)
         with col1:
@@ -856,13 +930,13 @@ elif page == "📅 Day Tracker":
             if r_title.strip() == "" or not r_days:
                 st.error("Please enter activity and select at least one day.")
             else:
-                add_recurring_task(r_title.strip(), r_subject.strip(), r_days)
+                add_recurring_task(username, r_title.strip(), r_subject.strip(), r_days)
                 st.success("Recurring activity added!")
                 st.rerun()
 
         st.markdown("---")
         st.markdown("### My Recurring Activities")
-        recurring = get_recurring_tasks()
+        recurring = get_recurring_tasks(username)
 
         if not recurring:
             st.info("No recurring activities added yet.")
@@ -892,7 +966,7 @@ elif page == "📅 Day Tracker":
   
     with tab4:
         today_str = str(date.today())
-        today_checkin = get_day_checkin(today_str)
+        today_checkin = get_day_checkin(username, today_str)
 
         if today_checkin:
             rating, mood, study_hours = today_checkin
@@ -922,13 +996,13 @@ elif page == "📅 Day Tracker":
         tmr_priority = st.selectbox("Priority", ["High", "Medium", "Low"], key="tmr_priority")
 
         if st.button("Save Check-in & Plan Tomorrow", use_container_width=True):
-            save_day_checkin(rating, eod_mood.lower(), study_hours_logged, today_str)
+            save_day_checkin(username, rating, eod_mood.lower(), study_hours_logged, today_str)
             if t1.strip():
-                add_task(t1.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
+                add_task(username, t1.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
             if t2.strip():
-                add_task(t2.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
+                add_task(username, t2.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
             if t3.strip():
-                add_task(t3.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
+                add_task(username, t3.strip(), tmr_subject.strip(), str(tomorrow), tmr_priority)
             st.success("Check-in saved! Tomorrow's tasks added.")
             st.rerun()
 elif page == "🎁 Rewards":
@@ -944,10 +1018,10 @@ elif page == "🎁 Rewards":
     """, unsafe_allow_html=True)
     st.markdown("---")
 
-    streak = get_streak()
-    done_tasks = get_tasks(status="done")
-    checkins = get_checkin_last_7_days()
-    earned_badges = [b[0] for b in get_badges()]
+    streak = get_streak(username)
+    done_tasks = get_tasks(username, status="done")
+    checkins = get_checkin_last_7_days(username)
+    earned_badges = [b[0] for b in get_badges(username)]
 
     DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'planner.db')
     checkin_dates = set()
@@ -966,28 +1040,28 @@ elif page == "🎁 Rewards":
     today_str = date.today().strftime("%Y-%m-%d")
     
     if len(done_tasks) >= 1 and "First Task" not in earned_badges:
-        award_badge("First Task"); earned_badges.append("First Task")
+        award_badge(username, "First Task"); earned_badges.append("First Task")
     if len(done_tasks) >= 10 and "Task Master" not in earned_badges:
-        award_badge("Task Master"); earned_badges.append("Task Master")
+        award_badge(username, "Task Master"); earned_badges.append("Task Master")
     if streak >= 3 and "3 Day Streak" not in earned_badges:
-        award_badge("3 Day Streak"); earned_badges.append("3 Day Streak")
+        award_badge(username, "3 Day Streak"); earned_badges.append("3 Day Streak")
     if streak >= 7 and "7 Day Streak" not in earned_badges:
-        award_badge("7 Day Streak"); earned_badges.append("7 Day Streak")
+        award_badge(username, "7 Day Streak"); earned_badges.append("7 Day Streak")
     if streak >= 14 and "14 Day Streak" not in earned_badges:
-        award_badge("14 Day Streak"); earned_badges.append("14 Day Streak")
+        award_badge(username, "14 Day Streak"); earned_badges.append("14 Day Streak")
     if streak >= 30 and "30 Day Streak" not in earned_badges:
-        award_badge("30 Day Streak"); earned_badges.append("30 Day Streak")
+        award_badge(username, "30 Day Streak"); earned_badges.append("30 Day Streak")
     if len(checkins) >= 7 and "Perfect Week" not in earned_badges:
-        award_badge("Perfect Week"); earned_badges.append("Perfect Week")
-    if len(get_all_exams()) >= 1 and "Exam Warrior" not in earned_badges:
-        award_badge("Exam Warrior"); earned_badges.append("Exam Warrior")
+        award_badge(username, "Perfect Week"); earned_badges.append("Perfect Week")
+    if len(get_all_exams(username)) >= 1 and "Exam Warrior" not in earned_badges:
+        award_badge(username, "Exam Warrior"); earned_badges.append("Exam Warrior")
 
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('SELECT created_at FROM day_checkin WHERE strftime("%H", created_at) >= "22" LIMIT 1')
         if c.fetchone() and "Night Owl" not in earned_badges:
-            award_badge("Night Owl"); earned_badges.append("Night Owl")
+            award_badge(username, "Night Owl"); earned_badges.append("Night Owl")
         conn.close()
     except:
         pass
@@ -997,13 +1071,13 @@ elif page == "🎁 Rewards":
         c = conn.cursor()
         c.execute('SELECT created_at FROM day_checkin WHERE strftime("%H", created_at) <= "08" LIMIT 1')
         if c.fetchone() and "Early Bird" not in earned_badges:
-            award_badge("Early Bird"); earned_badges.append("Early Bird")
+            award_badge(username, "Early Bird"); earned_badges.append("Early Bird")
         conn.close()
     except:
         pass
 
-    if len(get_all_exams()) >= 5 and "Subject Master" not in earned_badges:
-        award_badge("Subject Master"); earned_badges.append("Subject Master")
+    if len(get_all_exams(username)) >= 5 and "Subject Master" not in earned_badges:
+        award_badge(username, "Subject Master"); earned_badges.append("Subject Master")
 
     if streak == 0:
         flame = "💤"; flame_label = "No streak yet"
@@ -1022,7 +1096,7 @@ elif page == "🎁 Rewards":
     elif streak <= 6:
         flame = "🔥🔥"; flame_label = "Heating Up"
         flame_color = "#fd7e14"
-        flame_msg = "You're building momentum — don't break it!"
+        flame_msg = "You're building momentum -- don't break it!"
         motivational = "Consistency is the key to success. You're proving it!"
         progress_pct = streak / 7
         next_milestone = 7
@@ -1169,7 +1243,7 @@ elif page == "🎁 Rewards":
             <p style='margin:6px 0;'>📅 Complete End of Day check-in every day</p>
             <p style='margin:6px 0;'>😊 Set your mood on the Home page daily</p>
             <p style='margin:6px 0;'>✅ Complete at least 1 task per day</p>
-            <p style='margin:6px 0;'>🔥 Don't break the streak — consistency is everything!</p>
+            <p style='margin:6px 0;'>🔥 Don't break the streak -- consistency is everything!</p>
         </div>
     """, unsafe_allow_html=True)
 elif page == "📈 Dashboard":
@@ -1185,11 +1259,11 @@ elif page == "📈 Dashboard":
     """, unsafe_allow_html=True)
     st.markdown("---")
 
-    checkins = get_checkin_last_7_days()
-    moods = get_mood_last_7_days()
-    all_tasks = get_tasks()
-    done_tasks = get_tasks(status="done")
-    upcoming_exams = [e for e in get_all_exams()
+    checkins = get_checkin_last_7_days(username)
+    moods = get_mood_last_7_days(username)
+    all_tasks = get_tasks(username)
+    done_tasks = get_tasks(username, status="done")
+    upcoming_exams = [e for e in get_all_exams(username)
                       if (datetime.strptime(e[2], "%Y-%m-%d").date() - date.today()).days >= 0]
 
     st.markdown("### This Week")
@@ -1237,8 +1311,8 @@ elif page == "📈 Dashboard":
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    wellness_today = get_today_wellness(str(date.today()))
-    wellness_7days = get_wellness_last_7_days()
+    wellness_today = get_today_wellness(username, str(date.today()))
+    wellness_7days = get_wellness_last_7_days(username)
 
     if wellness_7days:
         avg_sleep = round(sum([w[0] for w in wellness_7days]) / len(wellness_7days), 1)
@@ -1275,7 +1349,7 @@ elif page == "📈 Dashboard":
 
 
     st.markdown("### Activity Heatmap")
-    st.caption("Your daily study activity — last 3 months")
+    st.caption("Your daily study activity -- last 3 months")
 
     today = date.today()
     DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'planner.db')
@@ -1365,7 +1439,7 @@ elif page == "📈 Dashboard":
     col_left, col_right = st.columns(2)
 
     with col_left:
-        st.markdown("### Study Hours — Last 7 Days")
+        st.markdown("### Study Hours -- Last 7 Days")
         if checkins:
             dates = [c[3] for c in checkins][::-1]
             hours = [c[2] for c in checkins][::-1]
@@ -1417,13 +1491,13 @@ elif page == "📈 Dashboard":
                     from groq import Groq
                     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
                     prompt = f"""A Sri Lankan student's weekly performance:
-- Average study hours per day: {avg_h}h
-- Task completion rate: {done_pct}%
-- General mood this week: {mood_this_week}
-- Upcoming exams: {len(upcoming_exams)}
+    - Average study hours per day: {avg_h}h
+    - Task completion rate: {done_pct}%
+    - General mood this week: {mood_this_week}
+    - Upcoming exams: {len(upcoming_exams)}
 
-Give 3 short, specific, practical study tips based on this data.
-Each tip max 2 sentences. Be direct and friendly. No bullet numbers needed."""
+    Give 3 short, specific, practical study tips based on this data.
+    Each tip max 2 sentences. Be direct and friendly. No bullet numbers needed. """
 
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -1498,15 +1572,15 @@ Each tip max 2 sentences. Be direct and friendly. No bullet numbers needed."""
             if risk_score >= 7:
                 risk_label = "High Risk"
                 risk_color = "#dc3545"
-                risk_msg = "You need to take action now — study more, sleep better, stay consistent."
+                risk_msg = "You need to take action now -- study more, sleep better, stay consistent."
             elif risk_score >= 4:
                 risk_label = "Moderate Risk"
                 risk_color = "#ffc107"
-                risk_msg = "Things could be better — try to build a more consistent routine."
+                risk_msg = "Things could be better -- try to build a more consistent routine."
             else:
                 risk_label = "Low Risk"
                 risk_color = "#8B5CF6"
-                risk_msg = "You are on track — keep up the good habits!"
+                risk_msg = "You are on track -- keep up the good habits!"
 
             st.markdown(f"""
                 <div style='background:{risk_color}11; border-left:4px solid {risk_color};
@@ -1519,3 +1593,127 @@ Each tip max 2 sentences. Be direct and friendly. No bullet numbers needed."""
             """, unsafe_allow_html=True)
         else:
             st.info("Complete at least one end of day check-in to see your risk score.")
+elif page == "👤 Profile":
+    from datetime import date, datetime
+
+    st.markdown("""
+        <div style='text-align: center; padding: 20px;'>
+            <h1>👤 Profile</h1>
+            <p style='color: #888;'>Your academic profile and stats.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
+
+    profile = get_profile(username)
+    checkins = get_checkin_last_7_days(username)
+    done_tasks = get_tasks(username, status="done")
+    all_tasks = get_tasks(username)
+    streak = get_streak(username)
+    wellness_7 = get_wellness_last_7_days(username)
+
+    total_study = sum([c[2] for c in checkins]) if checkins else 0
+    completion_rate = round(len(done_tasks) / len(all_tasks) * 100) if all_tasks else 0
+    avg_wellness = 0
+    if wellness_7:
+        scores = []
+        for w in wellness_7:
+            s = 0
+            sleep, ate, water, phone, exercise, stress = w[0], w[1], w[2], w[3], w[4], w[5]
+            if 6 <= sleep <= 8: s += 20
+            elif sleep >= 5: s += 10
+            if ate == "Yes": s += 20
+            elif ate == "Partially": s += 10
+            if water >= 8: s += 20
+            elif water >= 4: s += 10
+            if phone <= 2: s += 20
+            elif phone <= 4: s += 10
+            if exercise == "Yes": s += 20
+            s = max(0, s - (stress - 1) * 3)
+            scores.append(s)
+        avg_wellness = round(sum(scores) / len(scores))
+
+    st.markdown(f"""
+        <div style='background:#8B5CF611; border:2px solid #8B5CF6;
+                    border-radius:16px; padding:24px; text-align:center; margin-bottom:20px;'>
+            <div style='font-size:4rem;'>👤</div>
+            <div style='font-size:1.8rem; font-weight:800; color:var(--color-text-primary); margin-top:8px;'>
+                {profile[0] if profile and profile[0] else username}
+            </div>
+            <div style='color:#888; font-size:0.9rem; margin-top:4px;'>@{username}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(f"""<div style='background:#8B5CF611; border-radius:10px; padding:16px; text-align:center;'>
+            <div style='font-size:1.8rem; font-weight:700; color:#8B5CF6;'>{streak}</div>
+            <div style='color:#888; font-size:0.8rem;'>Day Streak 🔥</div></div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""<div style='background:#8B5CF611; border-radius:10px; padding:16px; text-align:center;'>
+            <div style='font-size:1.8rem; font-weight:700; color:#8B5CF6;'>{len(done_tasks)}</div>
+            <div style='color:#888; font-size:0.8rem;'>Tasks Done ✅</div></div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""<div style='background:#8B5CF611; border-radius:10px; padding:16px; text-align:center;'>
+            <div style='font-size:1.8rem; font-weight:700; color:#8B5CF6;'>{total_study}h</div>
+            <div style='color:#888; font-size:0.8rem;'>Study Hours 📚</div></div>""", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""<div style='background:#8B5CF611; border-radius:10px; padding:16px; text-align:center;'>
+            <div style='font-size:1.8rem; font-weight:700; color:#8B5CF6;'>{avg_wellness}</div>
+            <div style='color:#888; font-size:0.8rem;'>Wellness Score 💊</div></div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("### Edit Profile")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        display_name = st.text_input("Display Name",
+            value=profile[0] if profile and profile[0] else "",
+            placeholder="e.g. Abii")
+        university = st.text_input("University / School",
+            value=profile[1] if profile and profile[1] else "",
+            placeholder="e.g. University of Kelaniya")
+        stream_options = ["A/L Science", "A/L Commerce", "A/L Arts", "University - IT",
+             "University - Engineering", "University - Medicine",
+             "University - Business", "University - Arts", "Other"]
+        stream = st.selectbox("Stream", stream_options,
+            index=stream_options.index(profile[2]) if profile and profile[2] in stream_options else 0)
+    with col2:
+        year_options = ["1st Year", "2nd Year", "3rd Year", "4th Year", "A/L Year 1", "A/L Year 2"]
+        year = st.selectbox("Year of Study", year_options,
+            index=year_options.index(profile[3]) if profile and profile[3] in year_options else 0)
+        study_goal = st.slider("Daily Study Goal (hours)", 1.0, 12.0,
+            float(profile[5]) if profile and profile[5] else 4.0, 0.5)
+        subjects_input = st.text_input("Your Subjects (comma separated)",
+            value=profile[4] if profile and profile[4] else "",
+            placeholder="e.g. Maths, Physics, Chemistry")
+
+    if st.button("Save Profile", use_container_width=True):
+        subjects_list = [s.strip() for s in subjects_input.split(",") if s.strip()]
+        save_profile(username, display_name, university, stream, year, subjects_list, study_goal)
+        st.success("Profile saved!")
+        st.rerun()
+
+    st.markdown("---")
+    st.markdown("### Badges Earned")
+    earned = get_badges(username)
+    if earned:
+        badge_icons = {
+            "First Task": "✅", "Task Master": "🏆", "3 Day Streak": "🔥",
+            "7 Day Streak": "⚡", "14 Day Streak": "💪", "30 Day Streak": "👑",
+            "Perfect Week": "🌟", "Exam Warrior": "⚔️", "Night Owl": "🦉",
+            "Early Bird": "🐦", "Subject Master": "📚"
+        }
+        cols = st.columns(4)
+        for i, (name, earned_at) in enumerate(earned):
+            with cols[i % 4]:
+                icon = badge_icons.get(name, "🏅")
+                st.markdown(f"""
+                    <div style='background:#8B5CF611; border:2px solid #8B5CF6;
+                                border-radius:12px; padding:12px; text-align:center; margin-bottom:8px;'>
+                        <div style='font-size:1.8rem;'>{icon}</div>
+                        <div style='font-weight:700; font-size:0.8rem; color:var(--color-text-primary);'>{name}</div>
+                        <div style='color:#888; font-size:0.7rem;'>{earned_at}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.info("No badges yet -- complete tasks and check in daily to earn badges!")
