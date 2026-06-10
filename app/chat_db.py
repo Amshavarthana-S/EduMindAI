@@ -8,6 +8,15 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
+    # Migrate old tables
+    for table in ['messages', 'sessions']:
+        try:
+            c.execute(f'ALTER TABLE {table} ADD COLUMN username TEXT DEFAULT "default"')
+            conn.commit()
+        except:
+            pass
+
     c.execute('''CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT, session_id TEXT, role TEXT,
@@ -17,7 +26,6 @@ def init_db():
         username TEXT, title TEXT, created_at TEXT)''')
     conn.commit()
     conn.close()
-
 def save_message(username, session_id, role, content):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
