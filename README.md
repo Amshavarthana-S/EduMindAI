@@ -8,7 +8,7 @@ EduMind AI helps students track their studies, manage tasks, monitor wellness, a
 
 ## 🌐 Live Demo
 
-[edumindai.streamlit.app](https://edumindai.streamlit.app)
+[edumindai.streamlit.app]((https://edumindai-studybuddy.streamlit.app/))
 
 ---
 
@@ -150,4 +150,4 @@ pandas
 
 ## 👨‍💻 Developer
 
-Built by **amshavarthana-S** 
+Built by **Amshavarthana-S** 
