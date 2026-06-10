@@ -629,16 +629,6 @@ elif page == "💬 AI Chatbot":
                     wellness_context += f" | Today: sleep={sleep}h, stress={stress}/5, phone={phone}h"
                     if stress >= 4: wellness_context += " | IMPORTANT: highly stressed"
                     if sleep < 6: wellness_context += f" | IMPORTANT: only slept {sleep}h"
-                    if phone > 4 and avg_study < 2:
-                        wellness_context += " | IMPORTANT: High phone usage + low study hours detected. Likely phone is causing distraction. Gently ask if phone is getting in the way of studying."
-                    if phone > 4:
-                        wellness_context += f" | Phone usage is high ({phone}h today). Student may be distracted."
-                    if avg_study < 1:
-                        wellness_context += " | Student is barely studying this week. Don't lecture — ask what's stopping them."
-                    if bad_moods_count >= 3:
-                        wellness_context += " | Student has been in bad mood most of this week. Be extra gentle and check in emotionally first."
-                    if comp_rate < 30:
-                        wellness_context += " | Task completion is very low. Student may be overwhelmed or struggling."
                 student_profile_data = get_profile(username)
                 if student_profile_data:
                     wellness_context += f" | Profile: {student_profile_data[2]}, {student_profile_data[3]}, subjects={student_profile_data[4]}"
@@ -699,14 +689,6 @@ Language:
 -> NEVER use slang unless student uses it first
 
 Hard rules:
-If you have student data showing high phone + low study:
--> Don't lecture or guilt them
--> Gently ask "I noticed you've been on your phone a lot — is it hard to put it down when studying?"
--> Follow their lead after that
-
-If student data shows high stress + low sleep:
--> Acknowledge it first before anything else
--> "Sounds like you're running on empty — that's really hard."
 -> Max 3 sentences per reply
 -> Don't ask a question in every single message
 -> Never sound like a therapist, teacher, or motivational poster
@@ -1668,10 +1650,10 @@ elif page == "👤 Profile":
     with col1:
         display_name = st.text_input("Display Name",
             value=profile[0] if profile and profile[0] else "",
-            placeholder="e.g. Abii")
+            placeholder="e.g. Amsha")
         university = st.text_input("University / School",
             value=profile[1] if profile and profile[1] else "",
-            placeholder="e.g. University of Kelaniya")
+            placeholder="e.g. University of Sri Jayewardenepura")
         stream_options = ["A/L Science", "A/L Commerce", "A/L Arts", "University - IT",
              "University - Engineering", "University - Medicine",
              "University - Business", "University - Arts", "Other"]
