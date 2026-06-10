@@ -8,6 +8,15 @@ def init_planner_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
+    # Migrate old tables — add username column if missing
+    for table in ['exams', 'tasks', 'mood_checkin', 'recurring_tasks', 'day_checkin', 'wellness']:
+        try:
+            c.execute(f'ALTER TABLE {table} ADD COLUMN username TEXT DEFAULT "default"')
+            conn.commit()
+        except:
+            pass
+
     c.execute('''CREATE TABLE IF NOT EXISTS exams (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT, subject TEXT, exam_date TEXT,
@@ -44,8 +53,6 @@ def init_planner_db():
         mental_note TEXT, wellness_date TEXT)''')
     conn.commit()
     conn.close()
-
-# ── PROFILE ───────────────────────────────────────────────
 def save_student_name(username, name):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -65,7 +72,6 @@ def get_student_name(username):
         conn.close()
         return None
 
-# ── EXAMS ─────────────────────────────────────────────────
 def add_exam(username, subject, exam_date, hours_per_day):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -89,7 +95,6 @@ def delete_exam(exam_id):
     conn.commit()
     conn.close()
 
-# ── TASKS ─────────────────────────────────────────────────
 def add_task(username, title, subject, due_date, priority):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -132,7 +137,6 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
 
-# ── MOOD ──────────────────────────────────────────────────
 def save_mood(username, mood):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -160,7 +164,6 @@ def get_mood_last_7_days(username):
     conn.close()
     return result
 
-# ── RECURRING ─────────────────────────────────────────────
 def add_recurring_task(username, title, subject, days):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -188,7 +191,6 @@ def delete_recurring_task(task_id):
     conn.commit()
     conn.close()
 
-# ── DAY CHECKIN ───────────────────────────────────────────
 def save_day_checkin(username, rating, mood, study_hours, date):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -222,7 +224,6 @@ def get_checkin_last_7_days(username):
         conn.close()
         return []
 
-# ── XP ────────────────────────────────────────────────────
 def get_xp(username):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
