@@ -295,7 +295,6 @@ def award_badge(username, name):
         pass
     conn.close()
 
-# ── WELLNESS ──────────────────────────────────────────────
 def save_wellness(username, sleep_hours, ate_healthy, water_glasses, phone_hours, exercised, stress_level, focus_rating, mental_note, date):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -328,3 +327,42 @@ def get_wellness_last_7_days(username):
     except:
         conn.close()
         return []
+def save_profile(username, display_name, university, stream, year, subjects, study_goal):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS profile_extended (
+        username TEXT PRIMARY KEY,
+        display_name TEXT,
+        university TEXT,
+        stream TEXT,
+        year TEXT,
+        subjects TEXT,
+        study_goal REAL
+    )''')
+    c.execute('''INSERT OR REPLACE INTO profile_extended 
+                 (username, display_name, university, stream, year, subjects, study_goal)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
+              (username, display_name, university, stream, year, ','.join(subjects), study_goal))
+    conn.commit()
+    conn.close()
+
+def get_profile(username):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('''CREATE TABLE IF NOT EXISTS profile_extended (
+            username TEXT PRIMARY KEY,
+            display_name TEXT,
+            university TEXT,
+            stream TEXT,
+            year TEXT,
+            subjects TEXT,
+            study_goal REAL
+        )''')
+        c.execute('SELECT display_name, university, stream, year, subjects, study_goal FROM profile_extended WHERE username = ?', (username,))
+        result = c.fetchone()
+        conn.close()
+        return result
+    except:
+        conn.close()
+        return None
