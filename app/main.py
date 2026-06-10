@@ -8,7 +8,7 @@ import uuid
 try:
     os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 except:
-    os.environ["GROQ_API_KEY"] = "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"
+    os.environ["GROQ_API_KEY"] = " "
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
